@@ -1673,7 +1673,7 @@ EXTRA_CFLAGS += -DCONFIG_TRAFFIC_PROTECT
 ARCH := arm64
 KVER := $(shell uname -r)
 KSRC := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/build
-MODDESTDIR := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/kernel/drivers/net/wireless
+MODDESTDIR := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/kernel/drivers/net/wireless/
 INSTALL_PREFIX :=
 STAGINGMODDIR := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/kernel/drivers/staging
 endif
