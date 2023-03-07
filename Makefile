@@ -14,6 +14,7 @@ EXTRA_CFLAGS += -Wno-unused-variable
 #EXTRA_CFLAGS += -Wno-unused-function
 #EXTRA_CFLAGS += -Wno-unused
 #EXTRA_CFLAGS += -Wno-uninitialized
+EXTRA_CFLAGS += -Wno-implicit-function-declaration
 
 GCC_VER_49 := $(shell echo `$(CC) -dumpversion | cut -f1-2 -d.` \>= 4.9 | bc )
 ifeq ($(GCC_VER_49),1)
@@ -1373,10 +1374,10 @@ SUBARCH := $(shell uname -m | sed -e s/i.86/i386/)
 ARCH ?= $(SUBARCH)
 CROSS_COMPILE ?=
 KVER  := $(shell uname -r)
-KSRC := /lib/modules/$(KVER)/build
-MODDESTDIR := /lib/modules/$(KVER)/kernel/drivers/net/wireless/
+KSRC := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/build
+MODDESTDIR := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/kernel/drivers/net/wireless/
 INSTALL_PREFIX :=
-STAGINGMODDIR := /lib/modules/$(KVER)/kernel/drivers/staging
+STAGINGMODDIR := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/kernel/drivers/staging
 endif
 
 ifeq ($(CONFIG_PLATFORM_NV_TK1), y)
@@ -1385,6 +1386,7 @@ EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN
 # default setting for Android 4.1, 4.2
 EXTRA_CFLAGS += -DCONFIG_IOCTL_CFG80211 -DRTW_USE_CFG80211_STA_EVENT
 EXTRA_CFLAGS += -DCONFIG_CONCURRENT_MODE
+ccflags-y += -D__CHECK_ENDIAN__
 EXTRA_CFLAGS += -DCONFIG_P2P_IPS -DCONFIG_PLATFORM_ANDROID
 # Enable this for Android 5.0
 EXTRA_CFLAGS += -DCONFIG_RADIO_WORK
@@ -1393,7 +1395,7 @@ EXTRA_CFLAGS += -DRTW_ENABLE_WIFI_CONTROL_FUNC
 ARCH ?= arm
 
 CROSS_COMPILE := /mnt/newdisk/android_sdk/nvidia_tk1/android_L/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-
-KSRC :=/mnt/newdisk/android_sdk/nvidia_tk1/android_L/out/target/product/shieldtablet/obj/KERNEL/
+KSRC := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/build
 MODULE_NAME = wlan
 endif
 
@@ -1406,8 +1408,8 @@ ARCH ?= arm
 
 CROSS_COMPILE ?=
 KVER := $(shell uname -r)
-KSRC := /lib/modules/$(KVER)/build
-MODDESTDIR := /lib/modules/$(KVER)/kernel/drivers/net/wireless/
+KSRC := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/build
+MODDESTDIR := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/kernel/drivers/net/wireless/
 INSTALL_PREFIX :=
 endif
 
@@ -2492,8 +2494,10 @@ strip:
 	$(CROSS_COMPILE)strip $(MODULE_NAME).ko --strip-unneeded
 
 install:
-	install -p -m 644 $(MODULE_NAME).ko  $(MODDESTDIR)
-	/sbin/depmod -a ${KVER}
+	install -p -m 644 -D $(MODULE_NAME).ko $(MODDESTDIR)$(MODULE_NAME).ko
+
+modules_install:
+	$(MAKE) INSTALL_MOD_DIR=$(MODDESTDIR) -C $(KSRC) M=$(shell pwd) modules_install
 
 uninstall:
 	rm -f $(MODDESTDIR)/$(MODULE_NAME).ko
