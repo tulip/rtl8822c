@@ -26,11 +26,13 @@
 #define RTW_SDIO_READ_PORT_FAIL	7
 #define RTW_ALREADY				8
 #define RTW_RA_RESOLVING		9
-#define RTW_BMC_NO_NEED			10
+#define RTW_ORI_NO_NEED			10
 #define RTW_XBUF_UNAVAIL		11
 #define RTW_TX_BALANCE			12
 #define RTW_TX_WAIT_MORE_FRAME	13
-#define RTW_QUEUE_MGMT 14
+#define RTW_QUEUE_MGMT			14
+#define RTW_NOT_SUPPORT			15
+#define RTW_BUSY				16
 
 /* #define RTW_STATUS_TIMEDOUT -110 */
 
@@ -47,6 +49,9 @@
 
 #ifdef PLATFORM_LINUX
 	#include <linux/version.h>
+#if defined(CONFIG_RTW_ANDROID_GKI)
+	#include <linux/firmware.h>
+#endif
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0))
 	#include <linux/sched/signal.h>
 	#include <linux/sched/types.h>
@@ -238,6 +243,9 @@ void *_rtw_zmalloc(u32 sz);
 void *_rtw_malloc(u32 sz);
 void _rtw_mfree(void *pbuf, u32 sz);
 
+#ifdef CONFIG_PCIE_DMA_COHERENT
+struct sk_buff *dev_alloc_skb_coherent(struct pci_dev *pdev, unsigned int size);
+#endif
 struct sk_buff *_rtw_skb_alloc(u32 sz);
 void _rtw_skb_free(struct sk_buff *skb);
 struct sk_buff *_rtw_skb_copy(const struct sk_buff *skb);
@@ -664,9 +672,9 @@ static inline int largest_bit_64(u64 bitmask)
 	return i;
 }
 
-#define rtw_abs(a) (a < 0 ? -a : a)
-#define rtw_min(a, b) ((a > b) ? b : a)
-#define rtw_max(a, b) ((a > b) ? a : b)
+#define rtw_abs(a) ((a) < 0 ? -(a) : (a))
+#define rtw_min(a, b) (((a) > (b)) ? (b) : (a))
+#define rtw_max(a, b) (((a) > (b)) ? (a) : (b))
 #define rtw_is_range_a_in_b(hi_a, lo_a, hi_b, lo_b) (((hi_a) <= (hi_b)) && ((lo_a) >= (lo_b)))
 #define rtw_is_range_overlap(hi_a, lo_a, hi_b, lo_b) (((hi_a) > (lo_b)) && ((lo_a) < (hi_b)))
 
@@ -709,12 +717,14 @@ extern int ATOMIC_DEC_RETURN(ATOMIC_T *v);
 extern bool ATOMIC_INC_UNLESS(ATOMIC_T *v, int u);
 
 /* File operation APIs, just for linux now */
+#if !defined(CONFIG_RTW_ANDROID_GKI)
 extern int rtw_is_dir_readable(const char *path);
+extern int rtw_store_to_file(const char *path, u8 *buf, u32 sz);
+#endif /* !defined(CONFIG_RTW_ANDROID_GKI) */
 extern int rtw_is_file_readable(const char *path);
 extern int rtw_is_file_readable_with_size(const char *path, u32 *sz);
 extern int rtw_readable_file_sz_chk(const char *path, u32 sz);
 extern int rtw_retrieve_from_file(const char *path, u8 *buf, u32 sz);
-extern int rtw_store_to_file(const char *path, u8 *buf, u32 sz);
 
 
 #ifndef PLATFORM_FREEBSD
@@ -804,7 +814,7 @@ extern u32 rtw_random32(void);
 	} while (0)
 
 void rtw_buf_free(u8 **buf, u32 *buf_len);
-void rtw_buf_update(u8 **buf, u32 *buf_len, u8 *src, u32 src_len);
+void rtw_buf_update(u8 **buf, u32 *buf_len, const u8 *src, u32 src_len);
 
 struct rtw_cbuf {
 	u32 write;
@@ -865,6 +875,7 @@ BOOLEAN is_null(char c);
 BOOLEAN is_all_null(char *c, int len);
 BOOLEAN is_eol(char c);
 BOOLEAN is_space(char c);
+BOOLEAN is_decimal(char chTmp);
 BOOLEAN IsHexDigit(char chTmp);
 BOOLEAN is_alpha(char chTmp);
 char alpha_to_upper(char c);

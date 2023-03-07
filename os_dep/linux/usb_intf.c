@@ -292,7 +292,8 @@ static struct usb_device_id rtw_usb_id_tbl[] = {
 #endif /* CONFIG_RTL8814B */
 #ifdef CONFIG_RTL8723F
 	/*=== Realtek IC ===*/
-	{USB_DEVICE_AND_INTERFACE_INFO(USB_VENDER_ID_REALTEK, 0xB733, 0xff, 0xff, 0xff), .driver_info = RTL8723F}, 
+	{USB_DEVICE_AND_INTERFACE_INFO(USB_VENDER_ID_REALTEK, 0xB733, 0xff, 0xff, 0xff), .driver_info = RTL8723F}, /* USB multi-fuction */
+	{USB_DEVICE_AND_INTERFACE_INFO(USB_VENDER_ID_REALTEK, 0xF72B, 0xff, 0xff, 0xff), .driver_info = RTL8723F}, /* USB Single-fuction, WiFi only */
 #endif
 
 	{}	/* Terminating entry */

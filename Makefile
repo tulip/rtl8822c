@@ -44,6 +44,7 @@ CONFIG_RTL8710B = n
 CONFIG_RTL8192F = n
 CONFIG_RTL8822C = y
 CONFIG_RTL8814B = n
+CONFIG_RTL8814C = n
 CONFIG_RTL8723F = n
 ######################### Interface ###########################
 CONFIG_USB_HCI = y
@@ -69,9 +70,10 @@ CONFIG_TXPWR_BY_RATE = y
 CONFIG_TXPWR_BY_RATE_EN = y
 CONFIG_TXPWR_LIMIT = y
 CONFIG_TXPWR_LIMIT_EN = n
-CONFIG_RTW_CHPLAN = 0xFF
+CONFIG_RTW_CHPLAN = 0xFFFF
 CONFIG_RTW_ADAPTIVITY_EN = disable
 CONFIG_RTW_ADAPTIVITY_MODE = normal
+CONFIG_80211D = n
 CONFIG_SIGNAL_SCALE_MAPPING = n
 CONFIG_80211W = y
 CONFIG_REDUCE_TX_CPU_LOADING = n
@@ -90,6 +92,8 @@ CONFIG_IP_R_MONITOR = n #arp VOQ and high rate
 # user priority mapping rule : tos, dscp
 CONFIG_RTW_UP_MAPPING_RULE = tos
 CONFIG_RTW_MBO = n
+CONFIG_WAKE_ON_BT = n
+CONFIG_RTW_NBI = n
 
 ########################## Android ###########################
 # CONFIG_RTW_ANDROID - 0: no Android, 4/5/6/7/8/9/10/11 : Android version
@@ -100,18 +104,18 @@ EXTRA_CFLAGS += -DCONFIG_RTW_ANDROID=$(CONFIG_RTW_ANDROID)
 endif
 
 ########################## Debug ###########################
-CONFIG_RTW_DEBUG = n
+CONFIG_RTW_DEBUG = y
 # default log level is _DRV_INFO_ = 4,
 # please refer to "How_to_set_driver_debug_log_level.doc" to set the available level.
-CONFIG_RTW_LOG_LEVEL = 2
+CONFIG_RTW_LOG_LEVEL = 4
 
 # enable /proc/net/rtlxxxx/ debug interfaces
 CONFIG_PROC_DEBUG = y
 
 ######################## Wake On Lan ##########################
 CONFIG_WOWLAN = n
-#bit3: ARP enable, bit2: deauth, bit1: unicast, bit0: magic pkt.
-CONFIG_WAKEUP_TYPE = 0xf
+#bit2: deauth, bit1: unicast, bit0: magic pkt.
+CONFIG_WAKEUP_TYPE = 0x7
 CONFIG_WOW_LPS_MODE = default
 #bit0: disBBRF off, #bit1: Wireless remote controller (WRC)
 CONFIG_SUSPEND_TYPE = 0
@@ -135,8 +139,15 @@ CONFIG_MP_VHT_HW_TX_MODE = n
 CONFIG_LAYER2_ROAMING = y
 #bit0: ROAM_ON_EXPIRED, #bit1: ROAM_ON_RESUME, #bit2: ROAM_ACTIVE
 CONFIG_ROAMING_FLAG = 0x3
+####################### Security Memory ############################
+# Define for using dma_declare_coherent_memory DMA API.
+# User Must set the SECURITY_MEM_ADDR and SECURITY_MEM_SIZE.
+# If SECURITY_MEM_ADDR is NULL, driver will show WARN_ON for notification.
+CONFIG_SECURITY_MEM = n
+CONFIG_SECURITY_MEM_ADDR = 0
+CONFIG_SECURITY_MEM_SIZE = 3686400
 ###################### Platform Related #######################
-CONFIG_PLATFORM_I386_PC = n
+CONFIG_PLATFORM_I386_PC = y
 CONFIG_PLATFORM_ANDROID_X86 = n
 CONFIG_PLATFORM_ANDROID_INTEL_X86 = n
 CONFIG_PLATFORM_JB_X86 = n
@@ -155,7 +166,6 @@ CONFIG_PLATFORM_FS_MX61 = n
 CONFIG_PLATFORM_ACTIONS_ATJ227X = n
 CONFIG_PLATFORM_TEGRA3_CARDHU = n
 CONFIG_PLATFORM_TEGRA4_DALMORE = n
-CONFIG_PLATFORM_TULIP = y
 CONFIG_PLATFORM_ARM_TCC8900 = n
 CONFIG_PLATFORM_ARM_TCC8920 = n
 CONFIG_PLATFORM_ARM_TCC8920_JB42 = n
@@ -1004,11 +1014,15 @@ endif
 ########### HAL_RTL8814B #################################
 ifeq ($(CONFIG_RTL8814B), y)
 RTL871X := rtl8814b
+ifeq ($(CONFIG_RTL8814C), y)
+MODULE_NAME = 8814ce
+else
 ifeq ($(CONFIG_USB_HCI), y)
 MODULE_NAME = 8814bu
 endif
 ifeq ($(CONFIG_PCI_HCI), y)
 MODULE_NAME = 8814be
+endif
 endif
 
 endif
@@ -1148,7 +1162,7 @@ else ifeq ($(CONFIG_TXPWR_LIMIT_EN), auto)
 EXTRA_CFLAGS += -DCONFIG_TXPWR_LIMIT_EN=2
 endif
 
-ifneq ($(CONFIG_RTW_CHPLAN), 0xFF)
+ifneq ($(CONFIG_RTW_CHPLAN), 0xFFFF)
 EXTRA_CFLAGS += -DCONFIG_RTW_CHPLAN=$(CONFIG_RTW_CHPLAN)
 endif
 
@@ -1164,12 +1178,18 @@ ifeq ($(CONFIG_RTW_ADAPTIVITY_EN), disable)
 EXTRA_CFLAGS += -DCONFIG_RTW_ADAPTIVITY_EN=0
 else ifeq ($(CONFIG_RTW_ADAPTIVITY_EN), enable)
 EXTRA_CFLAGS += -DCONFIG_RTW_ADAPTIVITY_EN=1
+else ifeq ($(CONFIG_RTW_ADAPTIVITY_EN), auto)
+EXTRA_CFLAGS += -DCONFIG_RTW_ADAPTIVITY_EN=2
 endif
 
 ifeq ($(CONFIG_RTW_ADAPTIVITY_MODE), normal)
 EXTRA_CFLAGS += -DCONFIG_RTW_ADAPTIVITY_MODE=0
 else ifeq ($(CONFIG_RTW_ADAPTIVITY_MODE), carrier_sense)
 EXTRA_CFLAGS += -DCONFIG_RTW_ADAPTIVITY_MODE=1
+endif
+
+ifeq ($(CONFIG_80211D), y)
+EXTRA_CFLAGS += -DCONFIG_80211D
 endif
 
 ifeq ($(CONFIG_SIGNAL_SCALE_MAPPING), y)
@@ -1329,6 +1349,20 @@ EXTRA_CFLAGS += -DDM_ODM_SUPPORT_TYPE=0x04
 ifeq ($(CONFIG_RTW_MBO), y)
 EXTRA_CFLAGS += -DCONFIG_RTW_MBO -DCONFIG_RTW_80211K -DCONFIG_RTW_WNM -DCONFIG_RTW_BTM_ROAM
 EXTRA_CFLAGS += -DCONFIG_RTW_80211R
+endif
+
+ifeq ($(CONFIG_WAKE_ON_BT), y)
+EXTRA_CFLAGS += -DCONFIG_WAKE_ON_BT
+endif
+
+ifeq ($(CONFIG_RTW_NBI), y)
+EXTRA_CFLAGS += -DCONFIG_RTW_NBI
+endif
+
+ifeq ($(CONFIG_SECURITY_MEM), y)
+EXTRA_CFLAGS += -DCONFIG_SECURITY_MEM
+EXTRA_CFLAGS += -DSECURITY_MEM_ADDR=$(CONFIG_SECURITY_MEM_ADDR)
+EXTRA_CFLAGS += -DSECURITY_MEM_SIZE=$(CONFIG_SECURITY_MEM_SIZE)
 endif
 
 ifeq ($(CONFIG_PLATFORM_I386_PC), y)
@@ -1662,21 +1696,6 @@ KSRC := /home/android_sdk/nvidia/tegra-17r9-partner-android-4.2-dalmore_20130131
 MODULE_NAME := wlan
 endif
 
-ifeq ($(CONFIG_PLATFORM_TULIP), y)
-EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN
-EXTRA_CFLAGS += -DCONFIG_PLATFORM_TULIP
-EXTRA_CFLAGS += -DCONFIG_CONCURRENT_MODE
-EXTRA_CFLAGS += -DCONFIG_IOCTL_CFG80211 -DRTW_USE_CFG80211_STA_EVENT
-
-ARCH := arm64
-KVER := $(shell uname -r)
-KSRC := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/build
-MODDESTDIR := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/kernel/drivers/net/wireless/
-INSTALL_PREFIX :=
-STAGINGMODDIR := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/kernel/drivers/staging
-endif
-
-
 ifeq ($(CONFIG_PLATFORM_ARM_TCC8900), y)
 EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN
 ARCH := arm
@@ -1931,6 +1950,7 @@ KSRC:= $(CFGDIR)/../../kernel/linux-$(KERNEL_VER)
 endif
 
 ifeq ($(CONFIG_PLATFORM_ARM_RTD299X), y)
+EXTRA_CFLAGS += -DCONFIG_PLATFORM_ARM_RTD299X
 EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN
 EXTRA_CFLAGS += -DCONFIG_CONCURRENT_MODE
 EXTRA_CFLAGS += -DCONFIG_IOCTL_CFG80211 -DRTW_USE_CFG80211_STA_EVENT
@@ -2368,6 +2388,9 @@ ifeq ($(CONFIG_RTL8814B), y)
 include $(src)/rtl8814b.mk
 endif
 
+ifeq ($(CONFIG_RTL8814C), y)
+EXTRA_CFLAGS += -DCONFIG_RTL8814C
+endif
 ########### HAL_RTL8723F #################################
 ifeq ($(CONFIG_RTL8723F), y)
 include $(src)/rtl8723f.mk
