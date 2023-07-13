@@ -1466,6 +1466,39 @@ void phydm_set_manual_nbi_8822c(struct dm_struct *dm, boolean en_manual_nbi,
 }
 
 __odm_func__
+void phydm_set_nbi_wa_para_8822c(struct dm_struct *dm, boolean en_nbi,
+				 enum channel_width bw)
+{
+	if (en_nbi) {
+		switch (bw) {
+		case CHANNEL_WIDTH_20:
+		case CHANNEL_WIDTH_80:
+			odm_set_bb_reg(dm, R_0x810, 0xf, 0x7);
+			odm_set_bb_reg(dm, R_0x810, 0xf0000, 0x7);
+			odm_set_bb_reg(dm, R_0x88c, 0x30000, 0x3);
+			odm_set_bb_reg(dm, R_0x1944, 0x300, 0x3);
+			odm_set_bb_reg(dm, R_0x4044, 0x300, 0x3);
+			break;
+		case CHANNEL_WIDTH_40:
+			odm_set_bb_reg(dm, R_0x810, 0xf, 0x7);
+			odm_set_bb_reg(dm, R_0x810, 0xf0000, 0x7);
+			odm_set_bb_reg(dm, R_0x88c, 0x30000, 0x3);
+			odm_set_bb_reg(dm, R_0x1944, 0x300, 0x0);
+			odm_set_bb_reg(dm, R_0x4044, 0x300, 0x0);
+			break;
+		default:
+			break;
+		}
+	} else {
+		odm_set_bb_reg(dm, R_0x810, 0xf, 0x0);
+		odm_set_bb_reg(dm, R_0x810, 0xf0000, 0x0);
+		odm_set_bb_reg(dm, R_0x88c, 0x30000, 0x2);
+		odm_set_bb_reg(dm, R_0x1944, 0x300, 0x3);
+		odm_set_bb_reg(dm, R_0x4044, 0x300, 0x3);
+	}
+}
+
+__odm_func__
 void phydm_set_auto_nbi_8822c(struct dm_struct *dm, boolean en_auto_nbi)
 {
 	if (en_auto_nbi) {
@@ -1476,6 +1509,9 @@ void phydm_set_auto_nbi_8822c(struct dm_struct *dm, boolean en_auto_nbi)
 		odm_set_bb_reg(dm, R_0x818, BIT(3), 0x0);
 		odm_set_bb_reg(dm, R_0x1d3c, 0x78000000, 0x0);
 	}
+
+	if (dm->en_nbi_detect) /*0x1 would be effective for techicolor*/
+		odm_set_bb_reg(dm, R_0x818, 0x7, 0x1);
 }
 
 __odm_func__
@@ -1535,15 +1571,19 @@ void phydm_spur_eliminate_8822c(struct dm_struct *dm, u8 central_ch)
 
 	if (central_ch == 153 && (*dm->band_width == CHANNEL_WIDTH_20)) {
 		phydm_set_manual_nbi_8822c(dm, true, 112); /*5760 MHz*/
+		phydm_set_nbi_wa_para_8822c(dm, true, *dm->band_width);
 		phydm_set_csi_mask_8822c(dm, 112);
 	} else if (central_ch == 151 && (*dm->band_width == CHANNEL_WIDTH_40)) {
 		phydm_set_manual_nbi_8822c(dm, true, 16); /*5760 MHz*/
+		phydm_set_nbi_wa_para_8822c(dm, true, *dm->band_width);
 		phydm_set_csi_mask_8822c(dm, 16);
 	} else if (central_ch == 155 && (*dm->band_width == CHANNEL_WIDTH_80)) {
 		phydm_set_manual_nbi_8822c(dm, true, 208); /*5760 MHz*/
+		phydm_set_nbi_wa_para_8822c(dm, true, *dm->band_width);
 		phydm_set_csi_mask_8822c(dm, 208);
 	} else {
 		phydm_set_manual_nbi_8822c(dm, false, 0);
+		phydm_set_nbi_wa_para_8822c(dm, false, *dm->band_width);
 		phydm_clean_all_csi_mask_8822c(dm);
 		phydm_csi_mask_enable_8822c(dm, false);
 	}
@@ -1776,6 +1816,10 @@ config_phydm_switch_bandwidth_8822c(struct dm_struct *dm, u8 pri_ch,
 
 			/*ADC clock = 40M clock for BW5 */
 			odm_set_bb_reg(dm, R_0x9b4, 0x00700000, 0x4);
+
+			/*Set nbi wa para*/
+			if (dm->en_nbi_detect)
+				phydm_set_nbi_wa_para_8822c(dm, false, bw);
 		} else if (bw == CHANNEL_WIDTH_10) {
 			/*RX DFIR*/
 			odm_set_bb_reg(dm, R_0x810, 0x3ff0, 0x2ab);
@@ -1789,6 +1833,10 @@ config_phydm_switch_bandwidth_8822c(struct dm_struct *dm, u8 pri_ch,
 
 			/*ADC clock = 80M clock for BW10 */
 			odm_set_bb_reg(dm, R_0x9b4, 0x00700000, 0x5);
+
+			/*Set nbi wa para*/
+			if (dm->en_nbi_detect)
+				phydm_set_nbi_wa_para_8822c(dm, false, bw);
 		} else if (bw == CHANNEL_WIDTH_20) {
 			/*RX DFIR*/
 			odm_set_bb_reg(dm, R_0x810, 0x3ff0, 0x19b);
@@ -1802,6 +1850,10 @@ config_phydm_switch_bandwidth_8822c(struct dm_struct *dm, u8 pri_ch,
 
 			/*ADC clock = 160M clock for BW20 */
 			odm_set_bb_reg(dm, R_0x9b4, 0x00700000, 0x6);
+
+			/*Set nbi wa para*/
+			if (dm->en_nbi_detect)
+				phydm_set_nbi_wa_para_8822c(dm, true, bw);
 		}
 
 		/*TX_RF_BW:[1:0]=0x0, RX_RF_BW:[3:2]=0x0 */
@@ -1871,6 +1923,10 @@ config_phydm_switch_bandwidth_8822c(struct dm_struct *dm, u8 pri_ch,
 			phydm_cck_agc_tab_sel_8822c(dm, CCK_BW40_8822C);
 			phydm_ofdm_agc_tab_sel_8822c(dm, OFDM_2G_BW40_8822C);
 		}
+
+		/*Set nbi wa para*/
+		if (dm->en_nbi_detect)
+			phydm_set_nbi_wa_para_8822c(dm, true, bw);
 		break;
 	case CHANNEL_WIDTH_80:
 		/*TX_RF_BW:[1:0]=0x2, RX_RF_BW:[3:2]=0x2 */
@@ -1893,6 +1949,10 @@ config_phydm_switch_bandwidth_8822c(struct dm_struct *dm, u8 pri_ch,
 
 		/*subtune*/
 		odm_set_bb_reg(dm, R_0x88c, 0xf000, 0x6);
+
+		/*Set nbi wa para*/
+		if (dm->en_nbi_detect)
+			phydm_set_nbi_wa_para_8822c(dm, true, bw);
 		break;
 	default:
 		PHYDM_DBG(dm, ODM_PHY_CONFIG,
@@ -2145,6 +2205,8 @@ config_phydm_parameter_init_8822c(struct dm_struct *dm,
 
 	if (*dm->mp_mode)
 		phydm_ch_smooth_setting_8822c(dm, true);
+	else if (dm->en_nbi_detect)
+		phydm_set_auto_nbi_8822c(dm, true);
 
 	/* Disable low rate DPD*/
 	if (dm->en_dis_dpd)

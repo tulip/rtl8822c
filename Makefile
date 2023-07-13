@@ -14,6 +14,7 @@ EXTRA_CFLAGS += -Wno-unused-variable
 #EXTRA_CFLAGS += -Wno-unused-function
 #EXTRA_CFLAGS += -Wno-unused
 #EXTRA_CFLAGS += -Wno-uninitialized
+EXTRA_CFLAGS += -Wno-implicit-function-declaration
 
 GCC_VER_49 := $(shell echo `$(CC) -dumpversion | cut -f1-2 -d.` \>= 4.9 | bc )
 ifeq ($(GCC_VER_49),1)
@@ -44,6 +45,7 @@ CONFIG_RTL8710B = n
 CONFIG_RTL8192F = n
 CONFIG_RTL8822C = y
 CONFIG_RTL8814B = n
+CONFIG_RTL8814C = n
 CONFIG_RTL8723F = n
 ######################### Interface ###########################
 CONFIG_USB_HCI = y
@@ -69,9 +71,10 @@ CONFIG_TXPWR_BY_RATE = y
 CONFIG_TXPWR_BY_RATE_EN = y
 CONFIG_TXPWR_LIMIT = y
 CONFIG_TXPWR_LIMIT_EN = n
-CONFIG_RTW_CHPLAN = 0xFF
+CONFIG_RTW_CHPLAN = 0xFFFF
 CONFIG_RTW_ADAPTIVITY_EN = disable
 CONFIG_RTW_ADAPTIVITY_MODE = normal
+CONFIG_80211D = n
 CONFIG_SIGNAL_SCALE_MAPPING = n
 CONFIG_80211W = y
 CONFIG_REDUCE_TX_CPU_LOADING = n
@@ -90,6 +93,8 @@ CONFIG_IP_R_MONITOR = n #arp VOQ and high rate
 # user priority mapping rule : tos, dscp
 CONFIG_RTW_UP_MAPPING_RULE = tos
 CONFIG_RTW_MBO = n
+CONFIG_WAKE_ON_BT = n
+CONFIG_RTW_NBI = n
 
 ########################## Android ###########################
 # CONFIG_RTW_ANDROID - 0: no Android, 4/5/6/7/8/9/10/11 : Android version
@@ -110,8 +115,8 @@ CONFIG_PROC_DEBUG = y
 
 ######################## Wake On Lan ##########################
 CONFIG_WOWLAN = n
-#bit3: ARP enable, bit2: deauth, bit1: unicast, bit0: magic pkt.
-CONFIG_WAKEUP_TYPE = 0xf
+#bit2: deauth, bit1: unicast, bit0: magic pkt.
+CONFIG_WAKEUP_TYPE = 0x7
 CONFIG_WOW_LPS_MODE = default
 #bit0: disBBRF off, #bit1: Wireless remote controller (WRC)
 CONFIG_SUSPEND_TYPE = 0
@@ -135,6 +140,13 @@ CONFIG_MP_VHT_HW_TX_MODE = n
 CONFIG_LAYER2_ROAMING = y
 #bit0: ROAM_ON_EXPIRED, #bit1: ROAM_ON_RESUME, #bit2: ROAM_ACTIVE
 CONFIG_ROAMING_FLAG = 0x3
+####################### Security Memory ############################
+# Define for using dma_declare_coherent_memory DMA API.
+# User Must set the SECURITY_MEM_ADDR and SECURITY_MEM_SIZE.
+# If SECURITY_MEM_ADDR is NULL, driver will show WARN_ON for notification.
+CONFIG_SECURITY_MEM = n
+CONFIG_SECURITY_MEM_ADDR = 0
+CONFIG_SECURITY_MEM_SIZE = 3686400
 ###################### Platform Related #######################
 CONFIG_PLATFORM_I386_PC = n
 CONFIG_PLATFORM_ANDROID_X86 = n
@@ -155,7 +167,6 @@ CONFIG_PLATFORM_FS_MX61 = n
 CONFIG_PLATFORM_ACTIONS_ATJ227X = n
 CONFIG_PLATFORM_TEGRA3_CARDHU = n
 CONFIG_PLATFORM_TEGRA4_DALMORE = n
-CONFIG_PLATFORM_TULIP = y
 CONFIG_PLATFORM_ARM_TCC8900 = n
 CONFIG_PLATFORM_ARM_TCC8920 = n
 CONFIG_PLATFORM_ARM_TCC8920_JB42 = n
@@ -199,6 +210,7 @@ CONFIG_PLATFORM_NV_TK1_UBUNTU = n
 CONFIG_PLATFORM_RTL8197D = n
 CONFIG_PLATFORM_AML_S905 = n
 CONFIG_PLATFORM_ZTE_ZX296716 = n
+CONFIG_PLATFORM_TULIP = y
 ########### CUSTOMER ################################
 CONFIG_CUSTOMER_HUAWEI_GENERAL = n
 
@@ -1004,11 +1016,15 @@ endif
 ########### HAL_RTL8814B #################################
 ifeq ($(CONFIG_RTL8814B), y)
 RTL871X := rtl8814b
+ifeq ($(CONFIG_RTL8814C), y)
+MODULE_NAME = 8814ce
+else
 ifeq ($(CONFIG_USB_HCI), y)
 MODULE_NAME = 8814bu
 endif
 ifeq ($(CONFIG_PCI_HCI), y)
 MODULE_NAME = 8814be
+endif
 endif
 
 endif
@@ -1148,7 +1164,7 @@ else ifeq ($(CONFIG_TXPWR_LIMIT_EN), auto)
 EXTRA_CFLAGS += -DCONFIG_TXPWR_LIMIT_EN=2
 endif
 
-ifneq ($(CONFIG_RTW_CHPLAN), 0xFF)
+ifneq ($(CONFIG_RTW_CHPLAN), 0xFFFF)
 EXTRA_CFLAGS += -DCONFIG_RTW_CHPLAN=$(CONFIG_RTW_CHPLAN)
 endif
 
@@ -1164,12 +1180,18 @@ ifeq ($(CONFIG_RTW_ADAPTIVITY_EN), disable)
 EXTRA_CFLAGS += -DCONFIG_RTW_ADAPTIVITY_EN=0
 else ifeq ($(CONFIG_RTW_ADAPTIVITY_EN), enable)
 EXTRA_CFLAGS += -DCONFIG_RTW_ADAPTIVITY_EN=1
+else ifeq ($(CONFIG_RTW_ADAPTIVITY_EN), auto)
+EXTRA_CFLAGS += -DCONFIG_RTW_ADAPTIVITY_EN=2
 endif
 
 ifeq ($(CONFIG_RTW_ADAPTIVITY_MODE), normal)
 EXTRA_CFLAGS += -DCONFIG_RTW_ADAPTIVITY_MODE=0
 else ifeq ($(CONFIG_RTW_ADAPTIVITY_MODE), carrier_sense)
 EXTRA_CFLAGS += -DCONFIG_RTW_ADAPTIVITY_MODE=1
+endif
+
+ifeq ($(CONFIG_80211D), y)
+EXTRA_CFLAGS += -DCONFIG_80211D
 endif
 
 ifeq ($(CONFIG_SIGNAL_SCALE_MAPPING), y)
@@ -1331,6 +1353,20 @@ EXTRA_CFLAGS += -DCONFIG_RTW_MBO -DCONFIG_RTW_80211K -DCONFIG_RTW_WNM -DCONFIG_R
 EXTRA_CFLAGS += -DCONFIG_RTW_80211R
 endif
 
+ifeq ($(CONFIG_WAKE_ON_BT), y)
+EXTRA_CFLAGS += -DCONFIG_WAKE_ON_BT
+endif
+
+ifeq ($(CONFIG_RTW_NBI), y)
+EXTRA_CFLAGS += -DCONFIG_RTW_NBI
+endif
+
+ifeq ($(CONFIG_SECURITY_MEM), y)
+EXTRA_CFLAGS += -DCONFIG_SECURITY_MEM
+EXTRA_CFLAGS += -DSECURITY_MEM_ADDR=$(CONFIG_SECURITY_MEM_ADDR)
+EXTRA_CFLAGS += -DSECURITY_MEM_SIZE=$(CONFIG_SECURITY_MEM_SIZE)
+endif
+
 ifeq ($(CONFIG_PLATFORM_I386_PC), y)
 EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN
 EXTRA_CFLAGS += -DCONFIG_IOCTL_CFG80211 -DRTW_USE_CFG80211_STA_EVENT
@@ -1339,10 +1375,10 @@ SUBARCH := $(shell uname -m | sed -e s/i.86/i386/)
 ARCH ?= $(SUBARCH)
 CROSS_COMPILE ?=
 KVER  := $(shell uname -r)
-KSRC := /lib/modules/$(KVER)/build
-MODDESTDIR := /lib/modules/$(KVER)/kernel/drivers/net/wireless/
+KSRC := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/build
+MODDESTDIR := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/kernel/drivers/net/wireless/
 INSTALL_PREFIX :=
-STAGINGMODDIR := /lib/modules/$(KVER)/kernel/drivers/staging
+STAGINGMODDIR := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/kernel/drivers/staging
 endif
 
 ifeq ($(CONFIG_PLATFORM_NV_TK1), y)
@@ -1351,6 +1387,7 @@ EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN
 # default setting for Android 4.1, 4.2
 EXTRA_CFLAGS += -DCONFIG_IOCTL_CFG80211 -DRTW_USE_CFG80211_STA_EVENT
 EXTRA_CFLAGS += -DCONFIG_CONCURRENT_MODE
+ccflags-y += -D__CHECK_ENDIAN__
 EXTRA_CFLAGS += -DCONFIG_P2P_IPS -DCONFIG_PLATFORM_ANDROID
 # Enable this for Android 5.0
 EXTRA_CFLAGS += -DCONFIG_RADIO_WORK
@@ -1359,7 +1396,7 @@ EXTRA_CFLAGS += -DRTW_ENABLE_WIFI_CONTROL_FUNC
 ARCH ?= arm
 
 CROSS_COMPILE := /mnt/newdisk/android_sdk/nvidia_tk1/android_L/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-
-KSRC :=/mnt/newdisk/android_sdk/nvidia_tk1/android_L/out/target/product/shieldtablet/obj/KERNEL/
+KSRC := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/build
 MODULE_NAME = wlan
 endif
 
@@ -1372,8 +1409,8 @@ ARCH ?= arm
 
 CROSS_COMPILE ?=
 KVER := $(shell uname -r)
-KSRC := /lib/modules/$(KVER)/build
-MODDESTDIR := /lib/modules/$(KVER)/kernel/drivers/net/wireless/
+KSRC := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/build
+MODDESTDIR := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/kernel/drivers/net/wireless/
 INSTALL_PREFIX :=
 endif
 
@@ -1662,21 +1699,6 @@ KSRC := /home/android_sdk/nvidia/tegra-17r9-partner-android-4.2-dalmore_20130131
 MODULE_NAME := wlan
 endif
 
-ifeq ($(CONFIG_PLATFORM_TULIP), y)
-EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN
-EXTRA_CFLAGS += -DCONFIG_PLATFORM_TULIP
-EXTRA_CFLAGS += -DCONFIG_CONCURRENT_MODE
-EXTRA_CFLAGS += -DCONFIG_IOCTL_CFG80211 -DRTW_USE_CFG80211_STA_EVENT
-
-ARCH := arm64
-KVER := $(shell uname -r)
-KSRC := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/build
-MODDESTDIR := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/kernel/drivers/net/wireless/
-INSTALL_PREFIX :=
-STAGINGMODDIR := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/kernel/drivers/staging
-endif
-
-
 ifeq ($(CONFIG_PLATFORM_ARM_TCC8900), y)
 EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN
 ARCH := arm
@@ -1931,6 +1953,7 @@ KSRC:= $(CFGDIR)/../../kernel/linux-$(KERNEL_VER)
 endif
 
 ifeq ($(CONFIG_PLATFORM_ARM_RTD299X), y)
+EXTRA_CFLAGS += -DCONFIG_PLATFORM_ARM_RTD299X
 EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN
 EXTRA_CFLAGS += -DCONFIG_CONCURRENT_MODE
 EXTRA_CFLAGS += -DCONFIG_IOCTL_CFG80211 -DRTW_USE_CFG80211_STA_EVENT
@@ -2304,6 +2327,20 @@ endif
 
 endif
 
+ifeq ($(CONFIG_PLATFORM_TULIP), y)
+EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN
+EXTRA_CFLAGS += -DCONFIG_PLATFORM_TULIP
+EXTRA_CFLAGS += -DCONFIG_CONCURRENT_MODE
+EXTRA_CFLAGS += -DCONFIG_IOCTL_CFG80211 -DRTW_USE_CFG80211_STA_EVENT
+
+ARCH := arm64
+KVER := $(shell uname -r)
+KSRC := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/build
+MODDESTDIR := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/kernel/drivers/net/wireless/
+INSTALL_PREFIX :=
+STAGINGMODDIR := $(INSTALL_MOD_PATH)/lib/modules/$(KVER)/kernel/drivers/staging
+endif
+
 ########### CUSTOMER ################################
 ifeq ($(CONFIG_CUSTOMER_HUAWEI_GENERAL), y)
 CONFIG_CUSTOMER_HUAWEI = y
@@ -2368,6 +2405,9 @@ ifeq ($(CONFIG_RTL8814B), y)
 include $(src)/rtl8814b.mk
 endif
 
+ifeq ($(CONFIG_RTL8814C), y)
+EXTRA_CFLAGS += -DCONFIG_RTL8814C
+endif
 ########### HAL_RTL8723F #################################
 ifeq ($(CONFIG_RTL8723F), y)
 include $(src)/rtl8723f.mk
@@ -2469,8 +2509,10 @@ strip:
 	$(CROSS_COMPILE)strip $(MODULE_NAME).ko --strip-unneeded
 
 install:
-	install -p -m 644 $(MODULE_NAME).ko  $(MODDESTDIR)
-	/sbin/depmod -a ${KVER}
+	install -p -m 644 -D $(MODULE_NAME).ko $(MODDESTDIR)$(MODULE_NAME).ko
+
+modules_install:
+	$(MAKE) INSTALL_MOD_DIR=$(MODDESTDIR) -C $(KSRC) M=$(shell pwd) modules_install
 
 uninstall:
 	rm -f $(MODDESTDIR)/$(MODULE_NAME).ko

@@ -330,6 +330,9 @@ enum btc_btinfo_src {
 	BTC_BTINFO_SRC_BT_IQK	= 0x3,
 	BTC_BTINFO_SRC_BT_SCBD	= 0x4,
 	BTC_BTINFO_SRC_H2C60	= 0x5,
+	BTC_BTINFO_SRC_BT_PSD	= 0x6,
+	BTC_BTINFO_SRC_BT_SLOT1	= 0x7,
+	BTC_BTINFO_SRC_BT_SLOT2	= 0x8,
 	BTC_BTINFO_SRC_MAX
 };
 
@@ -743,6 +746,8 @@ struct btc_coex_dm {
 	u8	bt_status;
 	u8	wl_chnl_info[3];
 	u8	cur_toggle_para[6];
+	u8	bt_slot_length1[10];
+	u8	bt_slot_length2[10];
 	u32	cur_ant_pos_type;
 	u32	cur_switch_status;
 	u32	setting_tdma;
@@ -793,6 +798,7 @@ struct btc_coex_sta {
 	boolean bt_ctr_ok;
 
 	boolean wl_under_lps;
+	boolean wl_in_lps_enter;
 	boolean wl_under_ips;
 	boolean wl_under_4way;
 	boolean	wl_hi_pri_task1;
@@ -872,6 +878,7 @@ struct btc_coex_sta {
 	u16	bt_reg_modem_a;
 	u16	bt_reg_rf_2;
 	u16	bt_reg_rf_9;
+	u16	bt_reg_le_200;
 	u16	wl_txlimit;
 
 	u32	score_board_BW_32bit;
@@ -1201,6 +1208,8 @@ typedef enum _BTC_NOTIFY_TYPE_IPS {
 typedef enum _BTC_NOTIFY_TYPE_LPS {
 	BTC_LPS_DISABLE							= 0x0,
 	BTC_LPS_ENABLE							= 0x1,
+	BTC_LPS_PRE							= 0x2,
+	BTC_LPS_RET							= 0x3,
 	BTC_LPS_MAX
 } BTC_NOTIFY_TYPE_LPS, *PBTC_NOTIFY_TYPE_LPS;
 typedef enum _BTC_NOTIFY_TYPE_SCAN {
@@ -1929,6 +1938,7 @@ struct btc_chip_para {
 	u32				para_ver_date;
 	u32				para_ver;
 	u32				bt_desired_ver;
+	u32				wl_desired_ver;
 	boolean			scbd_support;
 	u32				scbd_reg;
 	u8				scbd_bit_num;

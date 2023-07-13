@@ -54,7 +54,7 @@ static u8 sethwreg(PADAPTER padapter, u8 variable, u8 *val)
 #ifdef CONFIG_PLATFORM_NOVATEK_NT72668
 			pHalData->rxagg_usb_timeout = 0x20;
 			pHalData->rxagg_usb_size = 0x03;
-#elif defined(CONFIG_PLATFORM_HISILICON)
+#elif defined(CONFIG_PLATFORM_HISILICON) || defined(CONFIG_PLATFORM_ARM_RTD299X)
 			/* use 16k to workaround for HISILICON platform */
 			pHalData->rxagg_usb_timeout = 8;
 			pHalData->rxagg_usb_size = 3;

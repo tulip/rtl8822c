@@ -42,7 +42,7 @@
 #endif
 
 #ifdef CONFIG_80211AC_VHT
-	#define CONFIG_BEAMFORMING
+	/* #define CONFIG_BEAMFORMING */
 #endif
 
 /* set CONFIG_IOCTL_CFG80211 from Makefile */
@@ -224,6 +224,7 @@
 	#define CONFIG_PREALLOC_RECV_SKB
 	#ifdef CONFIG_PREALLOC_RECV_SKB
 		/* #define CONFIG_FIX_NR_BULKIN_BUFFER */ /* only use PREALLOC_RECV_SKB buffer, don't alloc skb at runtime */
+		#define CONFIG_USB_PROTECT_RX_CLONED_SKB
 	#endif
 #endif
 
