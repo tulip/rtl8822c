@@ -4109,6 +4109,7 @@ void rtl8822c_query_rx_desc(union recv_frame *precvframe, u8 *pdesc)
 
 void rtl8822c_set_hal_ops(PADAPTER adapter)
 {
+	usleep_range(1000000, 12000000);
 	struct hal_com_data *hal;
 	struct hal_ops *ops;
 
