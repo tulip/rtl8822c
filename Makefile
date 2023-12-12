@@ -135,7 +135,7 @@ CONFIG_AP_WOWLAN = n
 ######### Notify SDIO Host Keep Power During Syspend ##########
 CONFIG_RTW_SDIO_PM_KEEP_POWER = y
 ###################### MP HW TX MODE FOR VHT #######################
-CONFIG_MP_VHT_HW_TX_MODE = y
+CONFIG_MP_VHT_HW_TX_MODE = n
 ###################### ROAMING #####################################
 CONFIG_LAYER2_ROAMING = y
 #bit0: ROAM_ON_EXPIRED, #bit1: ROAM_ON_RESUME, #bit2: ROAM_ACTIVE
